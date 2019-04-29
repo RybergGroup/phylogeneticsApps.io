@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8"> 
+<head>
+<title>Tree view</title>
+</head>
+<style id="style"></style>
+<body>
+<div id="intro"></div>
+<h1>Tree view</h1>
+<p id='instructions'>This app will draw SVG images of all trees in a tree file. It takes trees in newick format.</p>
+<input type="file" id="files" multiple />
+<div id="analyze"></div>
+<!--button type="button" onclick="draw_SVG()">Draw trees</button-->
+<div id="output_list"></div>
+<script src="../js_code/FileSaver.js"></script>
+<script src="../js_code/tree.js"></script>
+<script src="../js_code/intros.js"></script>
+<script>
+
+document.addEventListener("load", bio_apps_intro(document.getElementById("intro")));
+document.addEventListener("load", set_style_bio(document.getElementById("style")));
+var output = "No output generated";
+var trees=[];
+
+function process_file (f) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+	var text = reader.result;
+	text = text.split(";");
+	for (var i=0; i < text.length; ++i) {
+	    if (/\S/.test(text[i])) {
+		trees.push(new tree());
+		trees[trees.length-1].pars_newick(text[i]);
+	    }
+	}
+    }
+    reader.readAsText(f);
+}
+function readMultipleFiles(evt) {
+    if (window.File && window.FileReader && window.FileList && window.Blob) {
+	var files = evt.target.files; // FileList object
+	// files is a FileList of File objects. List some properties.
+	if (files) {
+	    for (var i = 0; i < files.length; ++i) {
+		var f = files[i];
+		process_file (f);
+	    }
+	}
+	else {
+	    alert("Failed to load files");
+	}
+	document.getElementById("analyze").innerHTML = '<button type="button" onclick="draw_SVG()">Draw SVG</button>';
+    }
+    else {
+	alert('The File APIs are not fully supported by your browser.');
+    }
+}
+
+function draw_SVG() {
+    output = "";
+    width = 500;
+    height = 500;
+    for (var i = 0; i < trees.length; ++i) {
+	trees[i].add_svg_annotation(width,height);
+	output += trees[i].drawSVG(width,height);
+	output += "\n</br>\n<button type=\"button\" onclick=\"drawSVGtoFile(" + i + ")\">Save image as file</button>";
+    }
+    document.getElementById('output_list').innerHTML = output;
+}
+
+document.getElementById('files').addEventListener('change', readMultipleFiles, false);
+    
+function drawSVGtoFile(no) {
+    console.log(no);
+    make_text_file(trees[no].drawSVG(width,height));
+}
+
+function make_text_file (text) {
+    var data = new Blob ([text],{type: 'text/plain'});
+    saveAs(data, "tree.svg");
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8"> 
+<head>
+<title>Parsimony score</title>
+</head>
+<style id="style"></style>
+<body>
+<div id="intro"></div>
+<h1>Parsimony</h1>
+<p id='instructions'>This app calculates the (Fitch) parsimony score for a tree and alignment. It takes trees in newick format and an alignment in fasta format.</p>
+Tree:<input type="file" id="tree_files" multiple /><br/>
+<div id="seq_load">Alignment:<input type="file" id="seq_files" multiple /></br>
+</div>
+<div id="analyze"></div>
+<br/>
+<div id="output_list"></div>
+<!--script src="../js_code/FileSaver.js"></script-->
+<script src="../js_code/tree.js"></script>
+<script src="../js_code/intros.js"></script>
+<script src="../js_code/alignment.js"></script>
+<script src="../js_code/intros.js"></script>
+<script>
+
+document.addEventListener("load", bio_apps_intro(document.getElementById("intro")));
+document.addEventListener("load", set_style_bio(document.getElementById("style")));
+var output = "No output generated";
+//var alignment = new alignmentObject();
+var trees=[];
+var alignment = new alignmentObject();
+// read trees
+function processTreeFile (f) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+	var text = reader.result;
+	text = text.split(";");
+	for (var i=0; i < text.length; ++i) {
+	    if (/\S/.test(text[i])) {
+		trees.push(new tree());
+		trees[trees.length-1].pars_newick(text[i]);
+	    }
+	}
+    }
+    reader.readAsText(f);
+}
+function readMultipleTreeFiles(evt) {
+    if (window.File && window.FileReader && window.FileList && window.Blob) {
+	var files = evt.target.files; // FileList object
+	// files is a FileList of File objects. List some properties.
+	if (files) {
+	    for (var i = 0; i < files.length; ++i) {
+		var f = files[i];
+		processTreeFile (f);
+	    }
+	}
+	else {
+	    alert("Failed to load files");
+	}
+	if (alignment.nOTUs() > 0) { test_nOTUs(); document.getElementById("analyze").innerHTML = '<button type="button" onclick="calcScore()">Get parsimony score</button>'; }
+	//document.getElementById("seq_load").innerHTML = 'Alignment:<input type="file" id="seq_files" multiple /></br>';
+    }
+    else {
+	alert('The File APIs are not fully supported by your browser.');
+    }
+}
+// read alignment
+function test_nOTUs () {
+    var mismatches = '';
+    for (var i=0; i < trees.length; ++i) {
+	if (trees[i].nTips() !== alignment.nOTUs()) {
+	    if (mismatches) { mismatches += ", "; }
+	    mismatches += "" + i;
+	}
+    }
+    if (mismatches !== undefined && mismatches !== null && mismatches !== '') {
+	alert ("The trees " + mismatches + " has different number of OTUs than the alignment (" + alignment.nOTUs() + ")");
+    }
+}
+function processAlignmentFile (f) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+	var text = reader.result;
+	var prefix = "";
+	var sufix= "";
+	/*if (document.getElementById("prefix").checked) {
+	    prefix = document.getElementById("delimitor_pre").value
+	}
+	if (document.getElementById("sufix").checked) {
+	    sufix = document.getElementById("delimitor_suf").value
+	}*/
+	alignment.pars_fasta(text, f.name, prefix, sufix);
+	if (trees.length > 0) {
+	    test_nOTUs();
+	    /*var mismatches = [];
+	    for (var i=0; i < trees.length; ++i) {
+		if (trees[i].nTips() !== alignment.nOTUs()) {
+		    mismatches.push(i);
+		}
+	    }
+	    if (mismatches) {
+    		alert ("The trees " + mismatches + " has different number of OTUs than the alignment (" + alignment.nOTUs() + ")");
+	    }*/
+	    document.getElementById("analyze").innerHTML = '<button type="button" onclick="calcScore()">Get parsimony score</button>';
+	}
+	//document.getElementById("file_name").innerHTML = "<table><tr><th>File</th><th>Number of characters</th></tr>\n" + alignment.get_all_partitions_as_table_rows() + "</table>\n";
+    }
+    reader.readAsText(f);
+}
+function readMultipleAlignmentFiles(evt) {
+    if (window.File && window.FileReader && window.FileList && window.Blob) {
+	var files = evt.target.files; // FileList object
+	// files is a FileList of File objects. List some properties.
+	if (files) {
+	    for (var i = 0; i < files.length; ++i) {
+		var f = files[i];
+		processAlignmentFile (f);
+	    }
+	}
+	else {
+	    alert("Failed to load files");
+	}
+    }
+    else {
+	alert('The File APIs are not fully supported by your browser.');
+    }
+}
+function calcScore () {
+    output = "<table>\n<tr><th>Tree</th><th>Score</th></tr>\n";
+    var A = new alphabet();
+    A.DNA();
+    for (var i=0; i < trees.length; ++i) {
+	trees[i].calc_parsimony_scores(alignment, A);
+	var sum=0;
+	var partitions = alignment.get_all_partitions();
+	if (i === 0) {
+	    output += "<tr><th>no.</th>"
+	    for (var j=0; j < partitions.length; ++j) {
+		output += "<th>" + partitions[j] + "</th>";
+	    }
+	    output += "<th>Total</th></tr>\n"
+	}
+	output += "<tr><td>" + i + "</td>"
+	for (var j=0; j < partitions.length; ++j) {
+	    if (trees[i].scores.hasOwnProperty(partitions[j])) {
+		score = 0;
+		for (var pos = 0; pos < trees[i].scores[partitions[j]].length; ++pos) { score += trees[i].scores[partitions[i]][pos]; }
+		output += "<td>" + score + "</td>";
+		sum += score;
+	    }
+	    else {
+		output += "<td>" + - + "</td>";
+	    }
+       	}
+	output += "<td>" + sum +  "</td></tr>\n";
+    }
+    output += "</table>\n";
+    document.getElementById('output_list').innerHTML = output;
+}
+document.getElementById('tree_files').addEventListener('change', readMultipleTreeFiles, false);
+document.getElementById('seq_files').addEventListener('change', readMultipleAlignmentFiles, false);
+    
+
+/*function make_text_file (text) {
+    var data = new Blob ([text],{type: 'text/plain'});
+    saveAs(data, "concatenated.fst");
+}*/
+
+</script>
+</body>
+</html>
+<!--form>
+<input type="checkbox" id="prefix"> Disregard beginning of names until and including:
+<input type="text" id="delimitor_pre"></br>
+<input type="checkbox" id="sufix"> Disregard ending of name from and including:
+<input type="text" id="delimitor_suf">
+</form-->

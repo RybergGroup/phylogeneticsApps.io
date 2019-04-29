@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8"> 
+<head>
+<title>Tree stats</title>
+</head>
+<style id="style"></style>
+<body>
+<div id="intro"></div>
+<h1>Tree stats</h1>
+<p id='instructions'>This app produce some stats for all trees in a tree file. It takes trees in newick format.</p>
+<input type="file" id="files" multiple />
+<div id="analyze"></div>
+<!--button type="button" onclick="get_stats()">Get stats</button-->
+<div id="output_list"></div>
+<!--script src="../js_code/FileSaver.js"></script-->
+<script src="../js_code/tree.js"></script>
+<script src="../js_code/intros.js"></script>
+<script>
+
+document.addEventListener("load", bio_apps_intro(document.getElementById("intro")));
+document.addEventListener("load", set_style_bio(document.getElementById("style")));
+var output = "No output generated";
+//var alignment = new alignmentObject();
+var trees=[];
+
+function process_file (f) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+	var text = reader.result;
+	text = text.split(";");
+	for (var i=0; i < text.length; ++i) {
+	    if (/\S/.test(text[i])) {
+		trees.push(new tree());
+		trees[trees.length-1].pars_newick(text[i]);
+	    }
+	}
+    }
+    reader.readAsText(f);
+}
+function readMultipleFiles(evt) {
+    if (window.File && window.FileReader && window.FileList && window.Blob) {
+	var files = evt.target.files; // FileList object
+	// files is a FileList of File objects. List some properties.
+	if (files) {
+	    for (var i = 0; i < files.length; ++i) {
+		var f = files[i];
+		process_file (f);
+	    }
+	}
+	else {
+	    alert("Failed to load files");
+	}
+	document.getElementById("analyze").innerHTML = '<button type="button" onclick="get_stats()">Get stats</button>';
+    }
+    else {
+	alert('The File APIs are not fully supported by your browser.');
+    }
+}
+
+function get_stats() {
+    var treeImbalanceURL = "http://www.jstor.org/stable/2992186?seq=1#page_scan_tab_contents";
+    var pybus_harveyURL = "http://rspb.royalsocietypublishing.org/content/267/1459/2267.short";
+    output = "<table>\n";
+    output += "<tr><th>Tree</th><th>N tips</th><th>N nodes</th><th>Tree length</th><th>Tree height</th>";
+    output += '<th><a href="' + treeImbalanceURL + "\"target=\"_blank\">Colless' tree imbalans</a></th>";
+    output += '<th><a href="' + treeImbalanceURL + "\"target=\"_blank\">B1 tree imbalans</a></th>";
+    output += '<th><a href="' + pybus_harveyURL + "\"target=\"_blank\">Gamma</a></th>";
+    output += "</tr>\n";
+    for (var i = 0; i < trees.length; ++i) {
+	output += "<tr><td>" + i + "</td>";
+	output += "<td>" + trees[i].nTips() + "</td>";
+	output += "<td>" + trees[i].nNodes() + "</td>";
+	output += "<td>" + trees[i].length().toFixed(2) + "</td>";
+	output += "<td>" + trees[i].height().toFixed(2) + "</td>";
+	output += "<td>" + trees[i].colless() + "</td>";
+	output += "<td>" + trees[i].B1().toFixed(2) + "</td>";
+	output += "<td>" + trees[i].gamma().toFixed(2) + "</td>";
+	output += "</tr>\n";
+    }
+    output += "</table>\n";
+    output += "<p>For a fully bifurcating tree the number of nodes should be two times the number of tips minus 1. The gamma value is calculated assuming a bifurcating tree.</p>\n";
+    document.getElementById('output_list').innerHTML = output;
+}
+
+document.getElementById('files').addEventListener('change', readMultipleFiles, false);
+    
+
+/*function make_text_file (text) {
+    var data = new Blob ([text],{type: 'text/plain'});
+    saveAs(data, "concatenated.fst");
+}*/
+
+</script>
+</body>
+</html>

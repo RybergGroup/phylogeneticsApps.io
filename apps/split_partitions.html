@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8"> 
+<head>
+<title>PartitionSplitter</title>
+</head>
+<style id="style"></style>
+<body>
+<div id="intro"></div>
+<h1>Partition splitter</h1>
+<p id='instructions'>This app split partitions of an alignment into separate alignments. The input alignment should be in fasta format, and the output alignments will be given in fasta format. The input partitions should be in the format used by RAxML, but does not allow ',' in the numbers.</p>
+Alignment file (FASTA): <input type="file" id="fasta_file" />
+<p id="nOTUs"></p>
+Partition file: <input type="file" id="partition_file" />
+<br/>
+<div id="partitions"></div>
+<div id="options">
+</div>
+
+<!--button type="button" onclick="print_all_to_fasta()">Get concatenated file</button>
+<br/>
+<button type="button" onclick="get_partition_table()">Get partition table</button>
+<p id="file_name"></p-->
+<div id="debug"></div>
+<script src="../js_code/FileSaver.js"></script>
+<script src="../js_code/alignment.js"></script>
+<script src="../js_code/intros.js"></script>
+<script>
+
+document.addEventListener("load", bio_apps_intro(document.getElementById("intro")));
+document.addEventListener("load", set_style_bio(document.getElementById("style")));
+//var field="intro";
+//var text = "Hello World";
+//document.getElementById(field).innerHTML = text;
+var alignment = new alignmentObject();
+var sequence_file_name = "";
+var new_partitions = {};
+function get_partition_table () {
+    alignment.print_all_partitions();
+    document.getElementById("file_name").innerHTML = "<table><tr><th>Partition</th><th>Positions</th></tr>\n" + alignment.get_partition_in_order_as_rows() + "</table>\n";
+}
+function process_file (f) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+	var text = reader.result;
+	sequence_file_name = f.name;
+	document.getElementById("nOTUs").innerHTML = "Number of OTUs: " + alignment.pars_fasta(text, sequence_file_name);
+    }
+    reader.readAsText(f);
+}
+function readSingleFile(evt) {
+    if (window.File && window.FileReader && window.FileList && window.Blob) {
+	var files = evt.target.files; // FileList object
+	// files is a FileList of File objects. List some properties.
+	if (files) {
+    	    var f = files[0];
+	    process_file (f);
+	}
+	else {
+	    alert("Failed to load file");
+	}
+    }
+    else {
+	alert('The File APIs are not fully supported by your browser.');
+    }
+}
+function readPartitionFile (evt) {
+    if (window.File && window.FileReader && window.FileList && window.Blob) {
+        var files = evt.target.files; // FileList object
+        // files is a FileList of File objects. List some properties.
+        if (files !== undefined) {
+            var f = files[0];
+            var reader = new FileReader();
+	    reader.onload = function (e) {
+		var text = reader.result;
+		//var textReg = new RegExp("\w");
+		text = text.split(/\r\n|\n|\r/,);
+		var debug_text = "<table>\n<tr><th>Partitions</th><th>Columns</th></tr>\n";
+		for (i=0; i < text.length; ++i) {
+		    if (text[i]) {
+			//debug_text += "<li>" + text[i] + "</li>";
+			var words = text[i].split(/\s+/,);
+			var numbers = text[i].split(/=/,);
+			if (numbers[1] !== undefined) {
+			    debug_text += "<tr><td>" + words[1] + "</td><td>";
+			    new_partitions[words[1]] = [];
+			    new_partitions[words[1]] = numbers[1].split(/-|, /);
+			    for (j=0; j < new_partitions[words[1]].length; j += 2) {
+				if (j > 0) { debug_text += ", "; }
+				debug_text += new_partitions[words[1]][j] + "-" + new_partitions[words[1]][j+1];
+			    }
+			    debug_text += "</td></tr>\n";
+			}
+		    }
+		}
+		debug_text += "</table>\n";
+		//alert(i);
+		document.getElementById("partitions").innerHTML = debug_text;
+	    }
+	    reader.readAsText(f);
+        }
+        else {
+            alert("Failed to load file");
+        }
+	document.getElementById("options").innerHTML = "<button type=\"button\" onclick=\"split_partitions()\">Split partitions</button>";
+    }
+    else {
+        alert('The File APIs are not fully supported by your browser.');
+    }
+}
+function print_all_to_fasta() {
+    alignment.print_all_partitions();
+    make_text_file (alignment.get_sequences_as_fasta());
+}
+function print_partition(part) {
+    //document.getElementById("debug").innerHTML = part;
+    alignment.partition_order = [ part ];
+    make_text_file (alignment.get_sequences_as_fasta(), part + ".fst");
+}
+function split_partitions () {
+    if (alignment !== undefined && new_partitions !== undefined) {
+	alignment.split_partition(sequence_file_name,new_partitions);
+	var partitions = alignment.get_all_partitions();
+	var text = "</br>Separate partitions:</br>\n";
+	text += "<table>\n<tr><th>Partitions</th><th>Length</th><th>GC content</th></tr>\n";
+	for (i=0; i<partitions.length; ++i) {
+	    alignment.partition_order = [ partitions[i] ];
+	    //document.getElementById("options").innerHTML = "<p>" + alignment.partition_order + "</p>";
+	    text += "<tr><td><button type=\"button\" onclick=\"";
+	    text += "print_partition('";
+	    text += partitions[i];
+	    text += "')\">";
+	    text += partitions[i];
+	    text += "</button></td><td>";
+	    text += alignment.partitions[partitions[i]];
+	    text += "</td><td>";
+	    text += alignment.getGC().toFixed(2);
+	    text += "</td></tr>";
+	}
+	text += "</table>\n";
+	document.getElementById("options").innerHTML = text;
+	//make_text_file(text,"temp.txt");
+    }
+    else { alert("Could not get alignment or partitions."); }
+}
+document.getElementById('fasta_file').addEventListener('change', readSingleFile, false);
+document.getElementById('partition_file').addEventListener('change', readPartitionFile, false);
+    
+
+function make_text_file (text, filename) {
+    var data = new Blob ([text],{type: 'text/plain'});
+    saveAs(data, filename);
+}
+
+</script>
+</body>
+</html>

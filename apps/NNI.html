@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8"> 
+<head>
+<title>NNI</title>
+</head>
+<style id="style"></style>
+<body>
+<div id="intro"></div>
+<h1>NNI branch swapping</h1>
+<p id='instructions'>This app do nearest neighbour interchange for all trees in a tree file. It takes trees in newick format.</p>
+<input type="file" id="files" multiple />
+<div id="analyze"></div>
+<!--button type="button" onclick="do_NNI()">Get stats</button-->
+<div id="output_list"></div>
+<!--script src="../js_code/FileSaver.js"></script-->
+<script src="../js_code/FileSaver.js"></script>
+<script src="../js_code/tree.js"></script>
+<script src="../js_code/intros.js"></script>
+<script>
+
+document.addEventListener("load", bio_apps_intro(document.getElementById("intro")));
+document.addEventListener("load", set_style_bio(document.getElementById("style")));
+var output = "No output generated";
+//var alignment = new alignmentObject();
+var trees=[];
+
+function process_file (f) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+	var text = reader.result;
+	text = text.split(";");
+	for (var i=0; i < text.length; ++i) {
+	    if (/\S/.test(text[i])) {
+		trees.push(new tree());
+		trees[trees.length-1].pars_newick(text[i]);
+	    }
+	}
+    }
+    reader.readAsText(f);
+}
+function readMultipleFiles(evt) {
+    if (window.File && window.FileReader && window.FileList && window.Blob) {
+	var files = evt.target.files; // FileList object
+	// files is a FileList of File objects. List some properties.
+	if (files) {
+	    for (var i = 0; i < files.length; ++i) {
+		var f = files[i];
+		process_file (f);
+	    }
+	}
+	else {
+	    alert("Failed to load files");
+	}
+	document.getElementById("analyze").innerHTML = '<button type="button" onclick="do_NNI()">Swapp branches</button>';
+    }
+    else {
+	alert('The File APIs are not fully supported by your browser.');
+    }
+}
+
+function do_NNI() {
+    nTrees = trees.length;
+    for (var i = 0; i < nTrees; ++i) {
+	var nodes = [];
+	nodes = trees[i].getNodesAsArray();
+	for (var j=0; j < nodes.length; ++j) {
+	    var temp = trees[i].nni(nodes[j]);
+	    console.log("N trees: " + temp.length + ' ' + trees.length);
+	    trees = trees.concat(temp); console.log(trees[trees.length-1].write());
+	}
+    }
+    output = "<table>\n";
+    output += "<tr><th>Tree</th>";
+    output += "</tr>\n";
+    for (var i = 0; i < trees.length; ++i) {
+	output += "<tr><td>" + i + "</td>";
+	output += "</tr>\n";
+    }
+    output += "</table>\n";
+    output += '<button type="button" onclick="print_trees()">Save to file</button>';
+    document.getElementById('output_list').innerHTML = output;
+}
+
+document.getElementById('files').addEventListener('change', readMultipleFiles, false);
+ 
+function print_trees () {
+    var newick_output = '';
+    for (var i = 0; i < trees.length; ++i) {
+	console.log("No.: " + i);
+	if (!trees[i].root) { console.log ("No root!!!"); }
+	console.log(i + ' - ' + trees[i].write());
+	newick_output += trees[i].write() + "\n";
+    }
+    make_text_file(newick_output);
+}
+
+function make_text_file (text) {
+    var data = new Blob ([text],{type: 'text/plain'});
+    saveAs(data, "NNItrees.tre");
+}
+
+</script>
+</body>
+</html>

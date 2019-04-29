@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8"> 
+<head>
+<title>FastaConcatenator</title>
+</head>
+<style id="style"></style>
+<body>
+<div id="intro"></div>
+<h1>Fasta concatenator</h1>
+<p id='instructions'>This app concatenates sequences given in separate fasta files.You can get the concatenated file using the "Get concatenated file" button. The order of sequences is as given in the table. You can get the start and end position of the sequences from the different files using the "Get partition table" button. You should be able to give files one by one or several at a time. You can exclude the beginning or end of sequence names (e.g. accession numbers for individual sequences that are not part of the sequence name). The given motif will be interpreted strictly (including case sensitivity)</p>
+<form>
+<input type="checkbox" id="prefix"> Disregard beginning of names until and including:
+<input type="text" id="delimitor_pre"></br>
+<input type="checkbox" id="sufix"> Disregard ending of name from and including:
+<input type="text" id="delimitor_suf">
+</form>
+<input type="file" id="files" multiple />
+<br/>
+<button type="button" onclick="print_all_to_fasta()">Get concatenated file</button>
+<br/>
+<button type="button" onclick="get_partition_table()">Get partition table</button>
+<p id="file_name"></p>
+<script src="../js_code/FileSaver.js"></script>
+<script src="../js_code/alignment.js"></script>
+<script src="../js_code/intros.js"></script>
+<script>
+
+document.addEventListener("load", bio_apps_intro(document.getElementById("intro")));
+document.addEventListener("load", set_style_bio(document.getElementById("style")));
+//var field="intro";
+//var text = "Hello World";
+//document.getElementById(field).innerHTML = text;
+var output = "No output generated";
+var alignment = new alignmentObject();
+function get_partition_table () {
+    alignment.print_all_partitions();
+    document.getElementById("file_name").innerHTML = "<table><tr><th>Partition</th><th>Positions</th></tr>\n" + alignment.get_partition_in_order_as_rows() + "</table>\n";
+}
+function process_file (f) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+	var text = reader.result;
+	var prefix = "";
+	var sufix= "";
+	if (document.getElementById("prefix").checked) {
+	    prefix = document.getElementById("delimitor_pre").value
+	}
+	if (document.getElementById("sufix").checked) {
+	    sufix = document.getElementById("delimitor_suf").value
+	}
+	alignment.pars_fasta(text, f.name, prefix, sufix);
+	document.getElementById("file_name").innerHTML = "<table><tr><th>File</th><th>Number of characters</th></tr>\n" + alignment.get_all_partitions_as_table_rows() + "</table>\n";
+    }
+    reader.readAsText(f);
+}
+function readMultipleFiles(evt) {
+    if (window.File && window.FileReader && window.FileList && window.Blob) {
+	var files = evt.target.files; // FileList object
+	// files is a FileList of File objects. List some properties.
+	if (files) {
+	    for (var i = 0; i < files.length; ++i) {
+		var f = files[i];
+		process_file (f);
+	    }
+	}
+	else {
+	    alert("Failed to load files");
+	}
+    }
+    else {
+	alert('The File APIs are not fully supported by your browser.');
+    }
+}
+function print_all_to_fasta() {
+    alignment.print_all_partitions();
+    make_text_file (alignment.get_sequences_as_fasta());
+}
+document.getElementById('files').addEventListener('change', readMultipleFiles, false);
+    
+
+function make_text_file (text) {
+    var data = new Blob ([text],{type: 'text/plain'});
+    saveAs(data, "concatenated.fst");
+}
+
+</script>
+</body>
+</html>

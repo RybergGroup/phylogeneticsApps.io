@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Reverse and complement</title>
+</head>
+<body>
+
+<h1>Reverse and complement</h1>
+<p id='test'>This application reverse and complement a DNA sequences. Paste sequences in text area and push Rev. Comp. Button. Sequences are accepted naked or in FASTA format. Line breaks, tabs and space are ignored in the sequence itself.</p>
+Sequence:<br/><textarea id="seqs" rows="10" cols="50">Paste your sequence here</textarea>
+<br/>
+<button type="button" onclick="rev_comp()">Rev. comp.</button>
+<button type="button" onclick="reset()">Clear</button>
+<p>Reverse complemented sequence:</p>
+<p id="output"></p>
+
+<script>
+function reset () {
+    document.getElementById("seqs").value = "";
+    document.getElementById("output").innerHTML = "";
+}
+function rev_comp() {
+    var sequence = document.getElementById("seqs").value;
+    sequence = sequence.split("");
+    var rev_comp_seq = "";
+    var read_name = false;
+    var name = "";
+    var seq = "";
+    while (sequence !== undefined && sequence != null && sequence.length > 0) {
+	var nucleotide = sequence.shift();
+	if (nucleotide === ">") {
+	    read_name = true;
+	    rev_comp_seq += seq;
+	    if (seq !== undefined && seq != null && seq.length > 0) { rev_comp_seq += seq + "<br/>"; }
+	    seq = "";
+	}
+	else if (nucleotide === "\n" || nucleotide === "\r") {
+	    if (read_name) {
+		read_name = false;
+	       	rev_comp_seq += "<br/>";
+		if (nucleotide === "\r" && sequence[0] === "\n") {
+		    nucleotide = sequence.shift();
+		    continue;
+		}
+	    }
+	}
+	if (read_name) {
+	    rev_comp_seq += nucleotide;
+	}
+	else {
+	    if (nucleotide === 't') { nucleotide = 'a'; }
+	    else if (nucleotide === 'T') { nucleotide = 'A'; }
+	    else if (nucleotide === 'a') { nucleotide = 't'; }
+	    else if (nucleotide === 'A') { nucleotide = 'T'; }
+	    else if (nucleotide === 'c') { nucleotide = 'g'; }
+	    else if (nucleotide === 'C') { nucleotide = 'G'; }
+	    else if (nucleotide === 'g') { nucleotide = 'c'; }
+	    else if (nucleotide === 'G') { nucleotide = 'C'; }
+	    else if (nucleotide === 'r') { nucleotide = 'y'; }
+	    else if (nucleotide === 'R') { nucleotide = 'Y'; }
+	    else if (nucleotide === 'y') { nucleotide = 'r'; }
+	    else if (nucleotide === 'Y') { nucleotide = 'R'; }
+	    else if (nucleotide === 's') { nucleotide = 'w'; }
+	    else if (nucleotide === 'S') { nucleotide = 'W'; }
+	    else if (nucleotide === 'w') { nucleotide = 's'; }
+	    else if (nucleotide === 'W') { nucleotide = 'S'; }
+	    else if (nucleotide === 'k') { nucleotide = 'm'; }
+	    else if (nucleotide === 'K') { nucleotide = 'M'; }
+	    else if (nucleotide === 'm') { nucleotide = 'k'; }
+	    else if (nucleotide === 'M') { nucleotide = 'K'; }
+	    else if (nucleotide === 'b') { nucleotide = 'v'; }
+	    else if (nucleotide === 'B') { nucleotide = 'V'; }
+	    else if (nucleotide === 'd') { nucleotide = 'h'; }
+	    else if (nucleotide === 'D') { nucleotide = 'H'; }
+	    else if (nucleotide === 'h') { nucleotide = 'd'; }
+	    else if (nucleotide === 'H') { nucleotide = 'D'; }
+	    else if (nucleotide === 'v') { nucleotide = 'b'; }
+	    else if (nucleotide === 'V') { nucleotide = 'B'; }
+	    else if (nucleotide === "\n" || nucleotide === "\r") {
+		nucleotide = "";//"<br/>";
+		if (nucleotide === "\r" && sequence[0] === "\n") { sequence.shift(); }
+	    }
+	    else if (nucleotide === "\t" || nucleotide === " ") { nucleotide = ""; }
+	    seq = nucleotide+seq;
+	}
+    }
+    rev_comp_seq += seq;
+    document.getElementById("output").innerHTML = rev_comp_seq;
+}
+    
+</script>
+</body>
+</html>
