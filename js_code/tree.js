@@ -333,81 +333,88 @@ function tree () {
 			else { B[part] = A[part]; }
 		    }
 		}
-		if (A === pointer) { newBranch = B; }//console.log("Found branch"); }
-		//console.log("New pointer children: " + newBranch.children)
+		if (A === pointer) { newBranch = B; }
 		return B;
 	    }
 	}
-	if (!branch || branch === this.root || branch.children.length < 1) { console.log("Root"); return newTrees; }
+	if (!branch) { console.log("No branch given for swapping"); return newTrees; }
+	if (branch === this.root) {
+	    if (this.root.children && this.root.children[0]) branch = this.root.children[0];
+	    else { console.log("No branches to swapp"); return newTrees; }
+       	}
+	if (branch.children.length < 1) { console.log("Non furcating node. No swapping"); return newTrees; }
 	if (branch.mother !== undefined && branch.mother !== null && branch.mother !== 0 && branch.children.length > 1) {
-	    if (branch.mother !== this.root) {
-		newTrees[0] = new tree();
+	    if (branch.mother !== this.root) { // If not swapping on branch leading to root
+		newTrees[0] = new tree(); // For first alternative topology
 		newTrees[0].scores = {};
-	       	newTrees[0].root = copyWithPointer(this.root,branch);
-		//console.log('Test: ' + Array.isArray(this.root.mother) );
+	       	newTrees[0].root = copyWithPointer(this.root,branch); // Start with original topology
 		var tempNode = new node();
-		/*for (part in newBranch) {
-		    if (newBranch.hasOwnProperty(part)) console.log(part + ' ' + newBranch[part]);
-		}*/
-		tempNode = newBranch.children[1];
-		//console.log("YY: " + tempNode.children);
+		tempNode = newBranch.children[1]; // save right child
 		newBranch.children[1] = newBranch.children[0];
 		if (newBranch.mother.children[0] === newBranch) { newBranch.children[0] = newBranch.mother.children[1]; newBranch.mother.children[1] = tempNode; }
 		else { newBranch.children[0] = newBranch.mother.children[0]; newBranch.mother.children[0] = tempNode; }
-		newTrees[1] = new tree();
+		newTrees[1] = new tree(); // For second alternative topology
 		newTrees[1].scores = {};
-	       	newTrees[1].root = copyWithPointer(this.root,branch);
+	       	newTrees[1].root = copyWithPointer(this.root,branch); // Start with original topology
 		tempNode = newBranch.children[0];
 		newBranch.children[0] = newBranch.children[1];
 		if (newBranch.mother.children[0] === newBranch) { newBranch.children[1] = newBranch.mother.children[1]; newBranch.mother.children[1] = tempNode; }
 		else { newBranch.children[1] = newBranch.mother.children[0]; newBranch.mother.children[0] = tempNode; }
 		
 	    }
-	    else {
+	    else { // If swapping on branch leading to root
 		//console.log("First child: " + this.root.children[0]);
 		var rootChild;
-		if (this.root.children[0] === branch) {
+		if (this.root.children[0] === branch) { // If swapping on the roots left branch
 		    rootChild=1;
 		    console.log("Left");
-		    if (this.root.children[1].children.length < 2) { return newTrees; }
+		    if (this.root.children[1].children.length < 2) { return newTrees; } // If only one descendent there is nothing to swapp
 		}
-		else if (this.root.children[1] === branch) {
+		else if (this.root.children[1] === branch) { // if swapping on the roots right branch
 		    rootChild=0;
 		    console.log("Right");
-		    if (this.root.children[0].children.length < 2) { return newTrees; }
+		    if (this.root.children[0].children.length < 2) { return newTrees; } // If only one descendent there is nothing to swapp
 		}
 		console.log("Gren " + rootChild);
-		newTrees[0] = new tree();
+		newTrees[0] = new tree(); // First alternative tree
 	    	newTrees[0].scores = {};
-		newTrees[0].root = copyWithPointer(this.root,branch);
+		newTrees[0].root = copyWithPointer(this.root,branch); // make copy of original tree to modify
 		tempNode = new node();
-		tempNode = newBranch.children[1];
-		newBranch.children[1] = newTrees[0].root.children[rootChild].children[0];
-		root.children[rootChild].children[0] = tempNode;
-		newTrees[1] = new tree();
+		tempNode = newBranch.children[1]; // Save the right child
+		newBranch.children[1] = newTrees[0].root.children[rootChild].children[0]; // Set sisters left child as right child
+		newTrees[0].root.children[rootChild].children[0] = tempNode; // Set sisters left child to the right child
+		newTrees[1] = new tree(); // second alternative tree
 		newTrees[1].scores = {};
-		newTrees[1].root = copyWithPointer(this.root,branch);
-		tempNode = newBranch.children[1];
-		newBranch.children[1] = newBranch.children[0].children[1];
-		root.children[1].children[1] = tempNode;
+		newTrees[1].root = copyWithPointer(this.root,branch); // make copy of original tree to modify
+		tempNode = newBranch.children[1]; // Save the right child
+		newBranch.children[1] = newTrees[0].root.children[rootChild].children[1]; //newBranch.children[0].children[1]; // Set sisters right child as right child
+		newTrees[1].root.children[rootChild].children[1] = tempNode; // Set sisters left child to the right child
+		//newTrees[1].root.children[0].children[1] = tempNode; // Set sisters right child to the right child
 	    }
 	}
 	return newTrees;
     }
 
-    this.getNodesAsArray = function () {
+    this.getNodesAsArray = function ( rootBranchOnce = false ) {
 	var nodes = [];
 	function getNodes (node) {
 	    for (var i = 0; i < node.children.length; ++i) {
 		getNodes(node.children[i]);
 	    }
+	    //console.log(node + " " + node.mother);
 	    nodes.push(node);
 	}
 	getNodes(this.root);
 	return nodes;
     }
 
-    /*this.nni_all = function () {
+    this.isRootBranch = function ( branch ) {
+	if (this.root === branch || this.root === branch.mother) return true;
+	else return false;
+
+    }
+
+    this.nni_all = function () {
 	var nniTrees = []
 	function  transverse (node) {
 	    for (var i = 0; i < node.children.length; ++i) {
@@ -417,7 +424,7 @@ function tree () {
 	}
 	this.transverse(this.root);
 	return nniTrees;
-    }*/
+    }
 
     this.add_svg_annotation = function (width,height) {
 	var nTaxa = this.nTips();

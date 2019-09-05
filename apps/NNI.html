@@ -24,6 +24,7 @@ document.addEventListener("load", set_style_bio(document.getElementById("style")
 var output = "No output generated";
 //var alignment = new alignmentObject();
 var trees=[];
+var newTrees=[]
 
 function process_file (f) {
     var reader = new FileReader();
@@ -63,21 +64,27 @@ function do_NNI() {
     nTrees = trees.length;
     for (var i = 0; i < nTrees; ++i) {
 	var nodes = [];
-	nodes = trees[i].getNodesAsArray();
+	nodes = trees[i].getNodesAsArray(true);
 	for (var j=0; j < nodes.length; ++j) {
-	    var temp = trees[i].nni(nodes[j]);
-	    console.log("N trees: " + temp.length + ' ' + trees.length);
-	    trees = trees.concat(temp); console.log(trees[trees.length-1].write());
+	    if (!trees[i].isRootBranch(nodes[j])) {
+		var temp = trees[i].nni(nodes[j]);
+		console.log("N trees: " + temp.length + ' ' + trees.length);
+		newTrees = newTrees.concat(temp);
+		//console.log(newTrees[newTrees.length-1].write());
+	    }
+	    else console.log("IS ROOT BRANCH");
 	}
+	newTrees = newTrees.concat(trees[i].nni(trees[i].root));
     }
-    output = "<table>\n";
+    /*output = "<table>\n";
     output += "<tr><th>Tree</th>";
     output += "</tr>\n";
     for (var i = 0; i < trees.length; ++i) {
 	output += "<tr><td>" + i + "</td>";
 	output += "</tr>\n";
     }
-    output += "</table>\n";
+    output += "</table>\n";*/
+    output = "<p>" + newTrees.length + " new topologies generated</p>";
     output += '<button type="button" onclick="print_trees()">Save to file</button>';
     document.getElementById('output_list').innerHTML = output;
 }
@@ -86,11 +93,11 @@ document.getElementById('files').addEventListener('change', readMultipleFiles, f
  
 function print_trees () {
     var newick_output = '';
-    for (var i = 0; i < trees.length; ++i) {
+    for (var i = 0; i < newTrees.length; ++i) {
 	console.log("No.: " + i);
-	if (!trees[i].root) { console.log ("No root!!!"); }
-	console.log(i + ' - ' + trees[i].write());
-	newick_output += trees[i].write() + "\n";
+	if (!newTrees[i].root) { console.log ("No root!!!"); }
+	console.log(i + ' - ' + newTrees[i].write());
+	newick_output += newTrees[i].write() + "\n";
     }
     make_text_file(newick_output);
 }
