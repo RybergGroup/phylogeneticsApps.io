@@ -7,9 +7,6 @@ function node (label="", length=0, mom=null) {
 
 function tree () {
     this.root = new node();
-    //this.node = new node();
-    //this._root = node;
-    //var n_branches = 0;
     this.scores = {};
     this.copy = function () {
 	treeCopy = new tree();
@@ -139,6 +136,23 @@ function tree () {
 	var n=0;
 	return subNnodes(this.root);
     }
+    this.isRootBranch = function ( branch ) {
+	if (this.root === branch || this.root === branch.mother) return true;
+	else return false;
+
+    }
+    this.getNodesAsArray = function ( ) {
+	var nodes = [];
+	function getNodes (node) {
+	    for (var i = 0; i < node.children.length; ++i) {
+		getNodes(node.children[i]);
+	    }
+	    //console.log(node + " " + node.mother);
+	    nodes.push(node);
+	}
+	getNodes(this.root);
+	return nodes;
+    }
     this.length = function () {
 	function subLength (node) {
 	    var length = 0;
@@ -230,7 +244,6 @@ function tree () {
 	//return nodedepths;
     }
     this.calc_parsimony_scores = function (alignment, alphabet) {
-	//if (this.scores === undefined) { this.scores = {}; }
 	var translation = alphabet;
 	this.add_parsimony = function (node) {
 	    if (this.scores === undefined) { alert("this.scores === undefined"); }
@@ -245,7 +258,7 @@ function tree () {
 		    var done_part = {};
                     for (var part in node.seq) {
 			if (node.seq.hasOwnProperty(part) && node.children[i]['seq'].hasOwnProperty(part)) {
-			    if (this.scores[part] === undefined) { this.scores[part] =[]; }
+			    if (this.scores[part] === undefined) { this.scores[part] = []; }
 			    for (var pos=0; pos < node.seq[part].length; ++pos) {
 				var comp = translation.pars_compare(node.seq[part][pos],node.children[i]['seq'][part][pos]);
 			       	if (comp[1]) {
@@ -304,6 +317,115 @@ function tree () {
 	    }
 	}
 	return sum;
+    }
+    this.addTip = function (alignment, alphabet, tipName) {
+	if (!alignment.OTUs[tipName]) return -1;
+	console.log("Adding " + tipName);
+	function testPos (node, newNode) {
+	    if (node === null || newNode === null) return {node: null, score: -1};
+	    var bestScore = {node: null, score: Number.MAX_SAFE_INTEGER};
+	    var testScore = {node: null, score: Number.MAX_SAFE_INTEGER};
+	    var childScores = 0;
+	    var tempSeq = {};
+	    for (var i=0; i < node.children.length; ++i) {
+		testScore = testPos(node.children[i],newNode);
+		childScores += node.children[i].score;
+		if (testScore.score < bestScore.score) { bestScore = testScore; }
+	    }
+	    testScore.score = childScores;
+	    testScore.node = node;
+	    for (var part in newNode['seq']) { // calc score per partition
+		if (tempSeq[part]) { // if the sequence has the partition
+		    for (var pos=0; pos < newNode['seq'][part].length; ++pos) { // for each position
+			var comp = alphabet.pars_compare(node.seq[part][pos],newNode['seq'][part][pos]);
+			tempSeq[part][pos] = comp[0];
+			testScore.score += comp[1];
+		    }
+		}
+		else {
+    		    tempSeq[part] = [];
+		    for (var pos=0; pos < node['seq'][part].length; ++pos) {
+			tempSeq[part][pos] = newNode['seq'][part][pos];
+		    }
+		}
+	    }
+	    testScore.score = scoreRecursive(node.mother,node,tempSeq, testScore.score);;
+	    if (testScore.score < bestScore.score) { bestScore = testScore; }
+	    return bestScore;
+	}
+
+	function scoreRecursive (node, newChild, newChildSeq, newChildScore, save) {
+	    if (node === null) return newChildScore;
+	    var tempScore = newChildScore;
+	    var tempSeq = {};
+	    for (var i=0; i < node.children.length; ++i) { // for each child
+		var checkSeq = {};
+		if (node.children[i] !== newChild) { checkSeq = node.children[i]['seq']; }
+		else { checkSeq = newChildSeq }
+		for (var part in checkSeq) { // calc score per partition
+		    if (tempSeq[part]) { // if the sequence has the partition
+			for (var pos=0; pos < checkSeq[part].length; ++pos) {
+			    var comp = alphabet.pars_compare(tempSeq[part][pos],checkSeq[part][pos]);
+			    tempSeq[part][pos] = comp[0];
+		    	    tempScore += comp[1];
+	    		}
+    		    }
+		    else {
+			tempSeq[part] = [];
+			for (var pos=0; pos < checkSeq[part].length; ++pos) {
+			    tempSeq[part][pos] = checkSeq[part][pos];
+			}
+		    }
+		}
+	    }
+	    if (save) { node.seq = tempSeq; node.score = tempScore; }
+	    return scoreRecursive(node.mother, node, tempSeq, tempScore);
+	}
+	if (this.root.children.length < 1 && !this.root.name) {
+	    this.root.name = tipName;
+	    this.root.seq = alignment.OTUs[tipName];
+	    this.root.score = 0;
+	    return 0;
+	}
+	else if (this.root.children.length < 1) {
+	    var left = this.root;
+	    this.root = new node();
+	    this.root.children[0] = left;
+	    left.mother = this.root;
+	    this.root.children[1] = new node(tipName,0,this.root);
+	    this.root.children[1].score=0;
+	    this.root.children[1].seq = alignment.OTUs[tipName];
+	    return scoreRecursive(this.root,this.root.children[0],this.root.children[0].seq,this.root.children[0].score,true);
+	}
+	else {
+	    /*this.root.children[0] = new node(order[0], 0, this.root);
+	    this.root.children[0].seq = alignment[order[0]];
+	    this.root.children[0].score = 0;
+	    this.root.children[1] = new node("",0,this.root);
+	    this.root.children[1] = new node(order[1],0,this.root);
+	    this.root.children[1].seq = alignment[order[1]];
+            this.root.children[1].score = 0;
+	    scoreRecursive(this.root,this.root.children[0],this.root.children[0].seq,this.root.children[0].score,true);*/
+	    //for (var i=2; i < order.length; ++i) {
+	    var newTip = new node (tipName);
+	    newTip.score = 0;
+	    newTip.seq = alignment.OTUs[tipName];
+    	    var bestPos = testPos(this.root,newTip);
+	    //console.log("Running");
+	    if (bestPos.node !== null) {
+		var newInternal = new node();
+		newInternal.children[0] = newTip;
+		newInternal.children[0].mother = newInternal;
+		newInternal.children[1] = bestPos.node;
+		newInternal.mother = bestPos.node.mother;
+		newInternal.children[1].mother = newInternal;
+		scoreRecursive(newInternal,newTip,newTip.seq,newTip.score,true);
+		console.log(bestPos.score);
+	    }
+	    else console.log("Could not place: " + tipName);
+	    //}
+	    return bestPos.score;
+	}
     }
     this.nni = function (branch) {
 	var newTrees = [];
@@ -395,25 +517,8 @@ function tree () {
 	return newTrees;
     }
 
-    this.getNodesAsArray = function ( rootBranchOnce = false ) {
-	var nodes = [];
-	function getNodes (node) {
-	    for (var i = 0; i < node.children.length; ++i) {
-		getNodes(node.children[i]);
-	    }
-	    //console.log(node + " " + node.mother);
-	    nodes.push(node);
-	}
-	getNodes(this.root);
-	return nodes;
-    }
 
-    this.isRootBranch = function ( branch ) {
-	if (this.root === branch || this.root === branch.mother) return true;
-	else return false;
-
-    }
-
+    /*
     this.nni_all = function () {
 	var nniTrees = []
 	function  transverse (node) {
@@ -425,7 +530,7 @@ function tree () {
 	this.transverse(this.root);
 	return nniTrees;
     }
-
+*/
     this.add_svg_annotation = function (width,height) {
 	var nTaxa = this.nTips();
 	var perTaxa = (height/*-(height/(2*nTaxa))*/)/nTaxa;

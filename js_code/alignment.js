@@ -51,6 +51,13 @@ function alignmentObject () {
 	this.add_partition(file_name, max_length);
 	return this.nOTUs();
     }
+    this.getOTUsAsArray = function () {
+	var returnArray = [];
+	for (OTU in this.OTUs) {
+            if (this.OTUs.hasOwnProperty(OTU)) { returnArray.push(OTU); }
+        }
+	return returnArray;
+    }
     this.alignment_length = function () {
 	length = 0;
 	for (part in this.partitions) {
