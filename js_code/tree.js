@@ -3,6 +3,14 @@ function node (label="", length=0, mom=null) {
     this.mother = mom;
     this.name = label;
     this.branch_length = length;
+    this.childByName = function ( taxon ) {
+	for (var i=0; i < this.children.length; ++i) {
+	    if (typeof this.children[i].name === 'string' && this.children[i].name.localeCompare(taxon) === 0) {
+		return i;
+	    }
+	}
+	return -1;
+    }
 }
 
 function tree () {
@@ -14,7 +22,6 @@ function tree () {
 	treeCopy.scores = copyComplexObject(this.scores);
     }
     this.pars_newick = function (tree) { // tree should be a textstring witha newick formated tree
-	//var present = this._root;
 	var present = this.root;
 	var read_mode = 's';
 	var label="";
@@ -70,7 +77,6 @@ function tree () {
     	    }
     	    else if (tree[i] === ';') {
 		if (present === this.root) {
-		//if (present === this._root) {
 		    if (label.length > 0) {
 			present.name=label;
 		    }
@@ -593,6 +599,57 @@ function tree () {
 	SVGdrawing += "</svg>\n";
 	return SVGdrawing;
     }
+    this.addTaxonByArray = function ( taxon, branchlengths = 0 ) {
+	if (!this.root.name) this.root.name = taxon[0];
+	else if ( this.root.name.localeCompare(taxon[0]) !== 0 ) {
+	    alert("Taxon " + taxon + " does not match previous root taxon!!!");
+	}
+	var nodeRef = this.root;
+	for (var i=1; i < taxon.length; ++i) {
+	    var branchlength;
+	    if (typeof branchlengths == "number") {
+		branchlength = branchlengths;
+	    }
+	    else if (branchlengths.isArray() && branchlengths.length > i) {
+		branchlength = branchlengths[i];
+	    }
+	    else if (branchlengths.isArray) { branchlength = branchlengths[0]; }
+	    else { branchlength = 0; }
+	    n = nodeRef.childByName( taxon[i] );
+	    if (n >= 0) {
+		nodeRef = nodeRef.children[n];
+	    }
+	    else {
+		nodeRef.children[nodeRef.children.length] = new node(taxon[i],branchlength,nodeRef);
+		nodeRef = nodeRef.children[nodeRef.children.length-1];
+	    }
+	}
+    }
+    this.collapsMonotypic = function () {
+	this.collaps = function ( leaf ) {
+	    if (leaf.children.length == 1) {
+		if (leaf === this.root) {
+		    this.root = leaf.children[0];
+		    this.root.mother = null;
+		}
+		else {
+		    //console.log(leaf.name + " " + leaf.branch_length)
+		    leaf.children[0].branch_length += leaf.branch_length;
+		    leaf.children[0].mother = leaf.mother;
+		    for (var i=0; i < leaf.mother.children.length; ++i) {
+			if (leaf.mother.children[i] === leaf) {
+			    leaf.mother.children[i] = leaf.children[0];
+			    break;
+			}
+		    }
+		}
+	    }
+	    for (var i=0; i<leaf.children.length; ++i) {
+    		this.collaps(leaf.children[i]);
+	    }
+	}
+	this.collaps(this.root);
+    }
 }
 
 function copyComplexObject(A,mother=null) {
@@ -601,14 +658,14 @@ function copyComplexObject(A,mother=null) {
 	if (A.hasOwnProperty(part)) {
 	    if (part === 'mother') { B[part] = mother; }
 	    else if (A[part] instanceof Array) {
-		console.log("Object " + part );
+		//console.log("Object " + part );
 		B[part] = copyComplexArray(A[part], B);
 	    }
 	    else if (A[part] instanceof Object) {
-		console.log("Array " + part);
+		//console.log("Array " + part);
 		B[part] = copyComplexObject(A[part], B);
 	    }
-	    else { B[part] = A[part]; console.log(B[part] + " " +part);}
+	    else { B[part] = A[part]; /*console.log(B[part] + " " +part);*/}
 	}
     }
     return B;
@@ -618,14 +675,14 @@ function copyComplexArray(A,mother=null) {
     var B = [];
     for (var i=0; i < A.length; ++i) {
 	if (A[i] instanceof Array) {
-	    console.log("Array " + part);
+	    //console.log("Array " + part);
 	    B[i] = copyComplexArray(A[i]);
 	}
 	else if (A[i] instanceof Object) {
-	    console.log("Object " + part);
+	    //console.log("Object " + part);
 	    B[i] = copyComplexObject(A[i], mother);
 	}
-	else { B[i] = A[i]; console.log(B[i] + " " +part);}
+	else { B[i] = A[i]; /*console.log(B[i] + " " +part);*/}
     }
     return B;
 }
