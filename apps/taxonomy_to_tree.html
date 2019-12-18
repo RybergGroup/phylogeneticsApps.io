@@ -45,15 +45,18 @@ function processTaxonomyFile (f, last) {
 	output = "";
 	while (!parser.atEnd()) {
 	    var row = parser.getNextRow();
-	    tree.addTaxonByArray(row,branchLengths);
+	    if (row[0].search(/^#/) != 0) {
+		tree.addTaxonByArray(row,branchLengths);
+	    }
 	}
 	//console.log("Last? " + last)
 	if (last) setTimeout(function() {
 	    if (collapsMonotypic) { setTimeout( tree.collapsMonotypic(), 100); console.log("Collaps monotypic");}
 	    //else { tree.collapsMonotypicRoot(); }
 	    //console.log("Print tree");
-	    document.getElementById("output_list").innerHTML = "Tree:</br>" + tree.write() + "</br>";
-	    document.getElementById("output_list").innerHTML += '<button type="button" onclick="print_trees()">Save to file</button>';
+	    document.getElementById("output_list").innerHTML = "Tree:</br>";
+	    document.getElementById("output_list").innerHTML += '<button type="button" onclick="print_trees()">Save to file</button></br>';
+	    document.getElementById("output_list").innerHTML += tree.write();
 	}, 100);
     }
     reader.readAsText(f);
