@@ -2,8 +2,10 @@
 <html>
 <head>
 <title>Reverse and complement</title>
+<link rel="stylesheet" href="../style.css">
 </head>
 <body>
+<div id="intro"></div>
 
 <h1>Reverse and complement</h1>
 <p id='test'>This application reverse and complement a DNA sequences. Paste sequences in text area and push Rev. Comp. Button. Sequences are accepted naked or in FASTA format. Line breaks, tabs and space are ignored in the sequence itself.</p>
@@ -13,8 +15,10 @@ Sequence:<br/><textarea id="seqs" rows="10" cols="50">Paste your sequence here</
 <button type="button" onclick="reset()">Clear</button>
 <p>Reverse complemented sequence:</p>
 <p id="output"></p>
+<script src="../js_code/intros.js"></script>
 
 <script>
+document.addEventListener("load", bio_apps_intro(document.getElementById("intro")));
 function reset () {
     document.getElementById("seqs").value = "";
     document.getElementById("output").innerHTML = "";

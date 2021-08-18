@@ -1,0 +1,6 @@
+Fungi	Basidiomycota	Agaricomycotina	taxon1
+Fungi	Basidiomycota	Agaricomycotina	taxon2
+Fungi	Basidiomycota	Agaricomycotina	taxon3
+Fungi	Ascomycota	Saccoaromycotina
+Fungi	Ascomycota	Pezizomycotina
+

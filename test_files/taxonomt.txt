@@ -1,0 +1,6 @@
+Fungi	Basidiomycota	Puccinomycotina
+Fungi	Basidiomycota	Ustilagomycotina
+Fungi	Basidiomycota	Agaricomycotina
+Fungi	Ascomycota	Saccoaromycotina
+Fungi	Ascomycota	Pezizomycotina
+

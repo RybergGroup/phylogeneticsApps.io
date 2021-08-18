@@ -3,8 +3,8 @@
 <meta charset="UTF-8"> 
 <head>
 <title>Parsimony score</title>
+<link rel="stylesheet" href="../style.css">
 </head>
-<style id="style"></style>
 <body>
 <div id="intro"></div>
 <h1>Parsimony</h1>
@@ -23,7 +23,6 @@ Tree:<input type="file" id="tree_files" multiple /><br/>
 <script>
 
 document.addEventListener("load", bio_apps_intro(document.getElementById("intro")));
-document.addEventListener("load", set_style_bio(document.getElementById("style")));
 var output = "No output generated";
 //var alignment = new alignmentObject();
 var trees=[];

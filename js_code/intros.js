@@ -1,6 +1,6 @@
 function bio_apps_intro(field) {
     var text = "<a href=\"../index.html\">HOME</a>\n";
-    text += "<p>This is a javascript application and everything is done on your computer by your web browser. It is free to use but no waranty, no guarantees, and no liability of the provider. The maximum size of blobs for your browser will set a limit to how big files can be processed. It has been tested in Firefox, but only to a limited extent in other browsers.</p>";
+    text += "<p>This is a javascript application and everything is done on your computer by your web browser. It is free to use but no waranty, no guarantees, and no liability of the provider. The maximum size of blobs for your browser will set a limit to how big files can be processed. It has been tested in a recent (at time of writing) version of Firefox, but only to a limited extent in other browsers.</p>";
     field.innerHTML = text;
 }
 

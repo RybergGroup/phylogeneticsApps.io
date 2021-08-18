@@ -3,8 +3,9 @@
 <meta charset="UTF-8"> 
 <head>
 <title>Taxonomy to tree</title>
+<link rel="stylesheet" href="../style.css">
 </head>
-<style id="style"></style>
+<!--style id="style"></style-->
 <body>
 <div id="intro"></div>
 <h1>Taxonomy to tree</h1>
@@ -27,37 +28,45 @@ Taxonomy:<input type="file" id="taxonomy_files" multiple /></br>
 <script>
 
 document.addEventListener("load", bio_apps_intro(document.getElementById("intro")));
-document.addEventListener("load", set_style_bio(document.getElementById("style")));
+//document.addEventListener("load", set_style_bio(document.getElementById("style")));
 var output = "No output generated";
-var tree=new tree();
-var taxonomy = {};
+var phylo=new tree();
+//var taxonomy = {};
 var includeBranchLengths = false;
 var collapsMonotypic = false;
 var branchLengths;
 var separator;
+var output_file_name = "taxon.tre";
 //read taxonomy
+
+function reset_tree() {
+    console.log("clearing");
+    //phylo = ""; //
+    phylo = new tree();
+    document.getElementById("output_list").innerHTML = "";
+}
+
 function processTaxonomyFile (f, last) {
+    output_file_name=f.name + '.tre';
     var reader = new FileReader();
     reader.onload = function (e) {
 	var text = reader.result;
-	//alignment.pars_fasta(text, f.name, prefix, sufix);
 	var parser = new tableParser(text,separator);
 	output = "";
 	while (!parser.atEnd()) {
 	    var row = parser.getNextRow();
 	    if (row[0].search(/^#/) != 0) {
-		tree.addTaxonByArray(row,branchLengths);
+		phylo.addTaxonByArray(row,branchLengths);
 	    }
 	}
-	//console.log("Last? " + last)
-	if (last) setTimeout(function() {
-	    if (collapsMonotypic) { setTimeout( tree.collapsMonotypic(), 100); console.log("Collaps monotypic");}
-	    //else { tree.collapsMonotypicRoot(); }
-	    //console.log("Print tree");
+	if (last) /*setTimeout(function()*/ {
+	    if (collapsMonotypic) { /*setTimeout( */phylo.collapsMonotypic()/*, 100)*/; console.log("Collaps monotypic");}
 	    document.getElementById("output_list").innerHTML = "Tree:</br>";
-	    document.getElementById("output_list").innerHTML += '<button type="button" onclick="print_trees()">Save to file</button></br>';
-	    document.getElementById("output_list").innerHTML += tree.write();
-	}, 100);
+	    document.getElementById("output_list").innerHTML += '<form id="output" action="/action_page.php">Tree:<input type="text" name="separators" id="file_name" value="' + output_file_name + '"></form>';
+	    document.getElementById("output_list").innerHTML += '<input type="button" onclick="print_trees()" value="Save to file" >\n';
+	    document.getElementById("output_list").innerHTML += '<input type="button" onclick="reset_tree()" value="Clear tree" > <span class="myDIV">&#9432;</span><div class="hide">Clear to reset tree, otherwise taxa from additional files will be added to the existing tree</div></br>';
+	    document.getElementById("output_list").innerHTML += phylo.write();
+	}/*, 100);*/
     }
     reader.readAsText(f);
 }
@@ -65,7 +74,7 @@ function readMultipleTaxonomyFiles(evt) {
     collapsMonotypic = document.getElementById("collaps").checked;
     separator = document.getElementById("separators").value;
     separator = separator.replace(/\\t/g, "\t");
-    console.log(separator);
+    console.log("Separator: " + separator);
     branchLengths = Number(document.getElementById("branch_length").value);
     //console.log("Branch length: " + document.getElementById("branch_length").value + " (" + branchLengths + ")");
     if (isNaN(branchLengths)) branchLengths = null;
@@ -92,12 +101,14 @@ function readMultipleTaxonomyFiles(evt) {
 document.getElementById('taxonomy_files').addEventListener('change', readMultipleTaxonomyFiles, false);
     
 function print_trees () {
-    make_text_file(tree.write());
+    make_text_file(phylo.write());
 }
 
+
 function make_text_file (text) {
+    output_file_name = document.getElementById("file_name").value;
     var data = new Blob ([text],{type: 'text/plain'});
-    saveAs(data, "taxon.tre");
+    saveAs(data, output_file_name);
 }
 
 </script>
