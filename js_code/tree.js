@@ -101,7 +101,7 @@ function tree () {
     	    }
 	}
     }
-    this.write = function() {
+    this.write = function(writeBranchLength = true, writeInternalLabels = true ) {
 	var output = "";
 	function writeNode(node) {
 	    if (node.children.length > 0) { output += '('; }
@@ -110,8 +110,8 @@ function tree () {
 		writeNode(node.children[i]);
 	    }
 	    if (node.children.length > 0) { output += ')'; }
-	    output += node.name;
-    	    output += ":" + node.branch_length;
+	    if (node.children.length == 0 || writeInternalLabels) output += node.name;
+    	    if (writeBranchLength) output += ":" + node.branch_length;
 	}
 	writeNode(this.root);
 	output += ';';
@@ -600,9 +600,10 @@ function tree () {
 	return SVGdrawing;
     }
     this.addTaxonByArray = function ( taxon, branchlengths = 0 ) {
+	var return_values = { err: [] }
 	if (!this.root.name) this.root.name = taxon[0];
 	else if ( this.root.name.localeCompare(taxon[0]) !== 0 ) {
-	    alert("Taxon " + taxon + " does not match previous root taxon!!!");
+	    return_values.err.push("Taxon " + taxon[0] + " does not match previous root taxon!!!");
 	}
 	var nodeRef = this.root;
 	for (var i=1; i < taxon.length; ++i) {
@@ -624,6 +625,7 @@ function tree () {
 		nodeRef = nodeRef.children[nodeRef.children.length-1];
 	    }
 	}
+	return return_values;
     }
     this.collapsMonotypic = function () {
 	this.collaps = function ( leaf ) {

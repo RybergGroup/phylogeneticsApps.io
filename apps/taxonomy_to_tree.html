@@ -15,12 +15,13 @@
 <div id="taxonomy_load">
 <form id='settings' action="/action_page.php">
 Column separating characters:<input type="text" name="separators" id="separators" value="\t"><br>
-Branch length:<input type="text" name="branch_length" id="branch_length" value="360"><br>
+Branch length:<input type="text" name="branch_length" id="branch_length" value="360">No branch length: <input type="checkbox" id="include_branch_length" ><br>
 Collapse monotypic taxa to one branch: <input type="checkbox" id="collaps" checked>
 </form>
-Taxonomy:<input type="file" id="taxonomy_files" multiple /></br>
+Taxonomy:<input type="file" id="taxonomy_files" multiple /><br>
 </div>
 <div id="output_list"></div>
+<div class="errorMessages" id="error_messages"></div>
 <script src="../js_code/FileSaver.js"></script>
 <script src="../js_code/tree.js"></script>
 <script src="../js_code/intros.js"></script>
@@ -37,6 +38,7 @@ var collapsMonotypic = false;
 var branchLengths;
 var separator;
 var output_file_name = "taxon.tre";
+var error_messages = [];
 //read taxonomy
 
 function reset_tree() {
@@ -44,9 +46,11 @@ function reset_tree() {
     //phylo = ""; //
     phylo = new tree();
     document.getElementById("output_list").innerHTML = "";
+    document.getElementById("error_messages").innerHTML = "";
 }
 
 function processTaxonomyFile (f, last) {
+    document.getElementById("output_list").innerHTML = "Processing " + f.name;
     output_file_name=f.name + '.tre';
     var reader = new FileReader();
     reader.onload = function (e) {
@@ -56,27 +60,41 @@ function processTaxonomyFile (f, last) {
 	while (!parser.atEnd()) {
 	    var row = parser.getNextRow();
 	    if (row[0].search(/^#/) != 0) {
-		phylo.addTaxonByArray(row,branchLengths);
+		var output = phylo.addTaxonByArray(row,branchLengths);
+		if (output.hasOwnProperty("err") && Array.isArray(output.err)) 
+		    for (var i=0; i < output.err.length; ++i) {
+			error_messages.push(output.err[i]);
+		    }
 	    }
 	}
 	if (last) /*setTimeout(function()*/ {
 	    if (collapsMonotypic) { /*setTimeout( */phylo.collapsMonotypic()/*, 100)*/; console.log("Collaps monotypic");}
-	    document.getElementById("output_list").innerHTML = "Tree:</br>";
+	    document.getElementById("output_list").innerHTML = "";
+	    if (error_messages.length > 0) {
+		document.getElementById("output_list").innerHTML = '<strong class="errorMessages">See error messages below!!!</strong><br>';
+		for (var i=0; i < error_messages.length; ++i) {
+		    document.getElementById("error_messages").innerHTML += error_messages[i] + "<br>";
+		}
+
+	    }
+	    document.getElementById("output_list").innerHTML += "Tree:</br>";
 	    document.getElementById("output_list").innerHTML += '<form id="output" action="/action_page.php">Tree:<input type="text" name="separators" id="file_name" value="' + output_file_name + '"></form>';
 	    document.getElementById("output_list").innerHTML += '<input type="button" onclick="print_trees()" value="Save to file" >\n';
 	    document.getElementById("output_list").innerHTML += '<input type="button" onclick="reset_tree()" value="Clear tree" > <span class="myDIV">&#9432;</span><div class="hide">Clear to reset tree, otherwise taxa from additional files will be added to the existing tree</div></br>';
-	    document.getElementById("output_list").innerHTML += phylo.write();
+	    document.getElementById("output_list").innerHTML += phylo.write(includeBranchLengths);
+
 	}/*, 100);*/
     }
     reader.readAsText(f);
 }
 function readMultipleTaxonomyFiles(evt) {
     collapsMonotypic = document.getElementById("collaps").checked;
+    includeBranchLengths = !document.getElementById("include_branch_length").checked;
     separator = document.getElementById("separators").value;
     separator = separator.replace(/\\t/g, "\t");
     console.log("Separator: " + separator);
     branchLengths = Number(document.getElementById("branch_length").value);
-    //console.log("Branch length: " + document.getElementById("branch_length").value + " (" + branchLengths + ")");
+    console.log("Branch length: " + branchLengths );
     if (isNaN(branchLengths)) branchLengths = null;
     if (window.File && window.FileReader && window.FileList && window.Blob) {
 	var files = evt.target.files; // FileList object
@@ -101,7 +119,7 @@ function readMultipleTaxonomyFiles(evt) {
 document.getElementById('taxonomy_files').addEventListener('change', readMultipleTaxonomyFiles, false);
     
 function print_trees () {
-    make_text_file(phylo.write());
+    make_text_file(phylo.write(includeBranchLengths));
 }
 
 
