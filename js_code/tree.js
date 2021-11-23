@@ -17,52 +17,37 @@ function tree () {
     this.root = new node();
     this.scores = {};
     this.copy = function () {
-	treeCopy = new tree();
-	treeCopy.root = copyComplexObject(this.root);
-	treeCopy.scores = copyComplexObject(this.scores);
+        treeCopy = new tree();
+        treeCopy.root = copyComplexObject(this.root);
+        treeCopy.scores = copyComplexObject(this.scores);
     }
     this.pars_newick = function (tree) { // tree should be a textstring witha newick formated tree
-	var present = this.root;
-	var read_mode = 's';
-	var label="";
-	var branch_length="";
-	for (var i=0; i < tree.length; ++i) {
-	    if (tree[i] === '[') {
-		var n_square_right = 0;
-		var start=true;
-		while ((n_square || start) && i < tree.length) {
-		    if (start) { start=false; }
-		    if (tree[i] === '[') { ++n_square_right; }
-		    else if (tree[i] === ']') { --n_square_right; }
-		    ++i;
-		}
-	    }
-	    else if (tree[i] === '(') {
-		read_mode = 'l';
-		present.children[present.children.length] = new node("",0,present);
-		present = present.children[present.children.length-1];
-		label="";
-		branch_length="";
-	    }
-	    else if (tree[i] === ',') {
-		//++n_branches;
-		read_mode = 'l';
-	       	if (label.length > 0) {
-		    present.name=label;
-		}
-		if (branch_length.length > 0) {
-		    present.branch_length = parseFloat(branch_length);
-		}
-		label="";
-		branch_length="";
-		if (present.mother) { present = present.mother; }
-		else { alert ("Failure to pars tree at char: " + i + " (" + tree[i] + ")" ) }
-		present.children[present.children.length] = new node(0,0,present);
-		present = present.children[present.children.length-1];
-    	    }
-    	    else if (tree[i] === ')') {
-		read_mode = 'l';
-		if (label.length > 0) {
+        var present = this.root;
+        var read_mode = 's';
+        var label="";
+        var branch_length="";
+        for (var i=0; i < tree.length; ++i) {
+            if (tree[i] === '[') {
+                var n_square_right = 0;
+                var start=true;
+                while ((n_square || start) && i < tree.length) {
+                    if (start) { start=false; }
+                    if (tree[i] === '[') { ++n_square_right; }
+                    else if (tree[i] === ']') { --n_square_right; }
+                    ++i;
+                }
+            }
+            else if (tree[i] === '(') {
+                read_mode = 'l';
+                present.children[present.children.length] = new node("",0,present);
+                present = present.children[present.children.length-1];
+                label="";
+                branch_length="";
+            }
+            else if (tree[i] === ',') {
+                //++n_branches;
+                read_mode = 'l';
+                if (label.length > 0) {
                     present.name=label;
                 }
                 if (branch_length.length > 0) {
@@ -70,36 +55,51 @@ function tree () {
                 }
                 label="";
                 branch_length="";
-		present = present.mother;
+                if (present.mother) { present = present.mother; }
+                else { alert ("Failure to pars tree at char: " + i + " (" + tree[i] + ")" ) }
+                present.children[present.children.length] = new node(0,0,present);
+                present = present.children[present.children.length-1];
+            }
+            else if (tree[i] === ')') {
+                read_mode = 'l';
+                if (label.length > 0) {
+                    present.name=label;
+                }
+                if (branch_length.length > 0) {
+                    present.branch_length = parseFloat(branch_length);
+                }
+                label="";
+                branch_length="";
+                present = present.mother;
     	    }
     	    else if (tree[i] === ':') {
-		read_mode = 'b';
+                read_mode = 'b';
     	    }
     	    else if (tree[i] === ';') {
-		if (present === this.root) {
-		    if (label.length > 0) {
-			present.name=label;
-		    }
-		    if (branch_length.length > 0) {
-			present.branch_length = parseFloat(branch_length);
-		    }
-		}
-		else { alert ("Tree may not have been parsed correctly. Check tree format."); }
-    	    }
+                if (present === this.root) {
+                    if (label.length > 0) {
+                        present.name=label;
+                    }
+                    if (branch_length.length > 0) {
+                        present.branch_length = parseFloat(branch_length);
+                    }
+                }
+                else { alert ("Tree may not have been parsed correctly. Check tree format."); }
+            }
     	    else if (read_mode === 'b') {
-		branch_length += tree[i];
+                branch_length += tree[i];
     	    }
     	    else if (read_mode === 'l') {
-		if (label.length > 0 && (tree[i] === "'" || tree[i] === '"')) {
-		    var marker = tree[i];
-		    ++i;
-		    while (tree[i] !== marker && i < tree.length) {
-			label += tree[i];
-		    }
-		}
-		else { label += tree[i]; }
+                if (label.length > 0 && (tree[i] === "'" || tree[i] === '"')) {
+                    var marker = tree[i];
+                    ++i;
+                    while (tree[i] !== marker && i < tree.length) {
+                        label += tree[i];
+                    }
+                }
+                else { label += tree[i]; }
     	    }
-	}
+        }
     }
     this.write = function(writeBranchLength = true, writeInternalLabels = true ) {
 	var output = "";
@@ -148,16 +148,32 @@ function tree () {
 
     }
     this.getNodesAsArray = function ( ) {
-	var nodes = [];
-	function getNodes (node) {
-	    for (var i = 0; i < node.children.length; ++i) {
-		getNodes(node.children[i]);
-	    }
+        var nodes = [];
+        function getNodes (node) {
+            for (var i = 0; i < node.children.length; ++i) {
+                getNodes(node.children[i]);
+            }
 	    //console.log(node + " " + node.mother);
-	    nodes.push(node);
-	}
-	getNodes(this.root);
-	return nodes;
+            nodes.push(node);
+        }
+        getNodes(this.root);
+        return nodes;
+    }
+    this.translateEdgeNumbers = function () {
+        var tr_matrix = [];
+        var nN = 0;
+        function transvers_tree (node,nR) {
+            ++nR;
+            var nJ=nR;
+            for (var i = 0; i < node.children.length; ++i) {
+                nJ = transvers_tree(node.children[i],nJ)
+            }
+            if (nR > 0) tr_matrix.push([nR,nN]);
+            ++nN
+            return nJ;
+        }
+        transvers_tree(this.root,-1)
+        return tr_matrix;
     }
     this.length = function () {
 	function subLength (node) {
