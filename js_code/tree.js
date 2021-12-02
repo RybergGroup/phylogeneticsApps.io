@@ -73,47 +73,6 @@ function tree () {
 		label="";
 		branch_length="";
 	    }
-	    else if (tree[i] === ',') {
-		//++n_branches;
-		read_mode = 'l';
-	       	if (label.length > 0) {
-		    present.name=label;
-		}
-		if (branch_length.length > 0) {
-		    present.branch_length = parseFloat(branch_length);
-		}
-		label="";
-		branch_length="";
-		if (present.mother) { present = present.mother; }
-		else { alert ("Failure to pars tree at char: " + i + " (" + tree[i] + ")" ) }
-		present.children[present.children.length] = new node(0,0,present);
-		present = present.children[present.children.length-1];
-    	    }
-    	    else if (tree[i] === ')') {
-		read_mode = 'l';
-		if (label.length > 0) {
-        var present = this.root;
-        var read_mode = 's';
-        var label="";
-        var branch_length="";
-        for (var i=0; i < tree.length; ++i) {
-            if (tree[i] === '[') {
-                var n_square_right = 0;
-                var start=true;
-                while ((n_square || start) && i < tree.length) {
-                    if (start) { start=false; }
-                    if (tree[i] === '[') { ++n_square_right; }
-                    else if (tree[i] === ']') { --n_square_right; }
-                    ++i;
-                }
-            }
-            else if (tree[i] === '(') {
-                read_mode = 'l';
-                present.children[present.children.length] = new node("",0,present);
-                present = present.children[present.children.length-1];
-                label="";
-                branch_length="";
-            }
             else if (tree[i] === ',') {
                 //++n_branches;
                 read_mode = 'l';
