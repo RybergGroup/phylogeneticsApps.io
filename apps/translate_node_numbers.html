@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8"> 
+<head>
+<title>Edge tR</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div id="intro"></div>
+<h1>Edge number translatoR</h1>
+<p id='instructions'>This app produce a table translating branch numbers from R ape notation to transverse numbers (what is used in many other software). It takes trees in newick format.</br>The app has only been tested for a special case so make sure it gives you the correct results.</p>
+<input type="file" id="files" multiple />
+<div id="analyze"></div>
+<!--button type="button" onclick="get_stats()">Get stats</button-->
+<div id="output_list"></div>
+<!--script src="../js_code/FileSaver.js"></script-->
+<script src="../js_code/tree.js"></script>
+<script src="../js_code/intros.js"></script>
+<script>
+
+document.addEventListener("load", bio_apps_intro(document.getElementById("intro")));
+var output = "No output generated";
+//var alignment = new alignmentObject();
+var trees=[];
+
+function process_file (f) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+        var text = reader.result;
+        text = text.split(";");
+        for (var i=0; i < text.length; ++i) {
+            if (/\S/.test(text[i])) {
+                trees.push(new tree());
+                trees[trees.length-1].pars_newick(text[i]);
+            }
+        }
+    }
+    reader.readAsText(f);
+}
+function readMultipleFiles(evt) {
+    if (window.File && window.FileReader && window.FileList && window.Blob) {
+        var files = evt.target.files; // FileList object
+        // files is a FileList of File objects. List some properties.
+        if (files) {
+            for (var i = 0; i < files.length; ++i) {
+                var f = files[i];
+                process_file (f);
+            }
+        }
+        else {
+            alert("Failed to load files");
+        }
+        document.getElementById("analyze").innerHTML = '<button type="button" onclick="get_table()">Get table</button>';
+    }
+    else {
+        alert('The File APIs are not fully supported by your browser.');
+    }
+}
+
+function get_table() {
+    for (var i = 0; i < trees.length; ++i) {
+        output = "<p>Tree " + i + "</p>";
+        output = "<table>\n";
+        output += "<tr><th>R</th><th>N</th></tr>\n";
+        matrix = trees[i].translateEdgeNumbers();
+        for (var j = 0; j < matrix.length; ++j) {
+            //console.log(matrix[j])
+            output += "<tr><td>" + matrix[j][0] + "</td><td>"  + matrix[j][1] + "</td></tr>";
+        }
+        output += "</table>\n";
+    }
+    document.getElementById('output_list').innerHTML = output;
+}
+
+document.getElementById('files').addEventListener('change', readMultipleFiles, false);
+
+/*function make_text_file (text) {
+    var data = new Blob ([text],{type: 'text/plain'});
+    saveAs(data, "concatenated.fst");
+}*/
+
+</script>
+</body>
+</html>
