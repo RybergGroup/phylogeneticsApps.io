@@ -26,14 +26,43 @@ function tree () {
 	var read_mode = 's';
 	var label="";
 	var branch_length="";
+	var additional_annotations = {};
 	for (var i=0; i < tree.length; ++i) {
 	    if (tree[i] === '[') {
-		var n_square_right = 0;
+		var n_square_right = 1;
+		var read_annotation = 'F';
 		var start=true;
+		var name = '';
+		var val = '';
 		while ((n_square || start) && i < tree.length) {
 		    if (start) { start=false; }
-		    if (tree[i] === '[') { ++n_square_right; }
+		    if (tree[i] === '[') {
+			++n_square_right;
+			if (tree[i+1] === '&') {
+			    read_annotation = 'T';
+			    while (tree[i+1] === '&') {
+				++i;
+			    }
+			}
+		    }
 		    else if (tree[i] === ']') { --n_square_right; }
+		    else if (read_annotation !== 'F') {
+			if (tree[i] === '=') {
+			    if (name) read_annotation = 'V';
+			}
+			else if (tree[i] === ',' || tree[i] === ' ') {
+			    if (name && val) additional_annotations[name] = val;
+			    name = '';
+			    val = '';
+			    read_annotation = 'N';
+			}
+			else if (read_annotation === 'T' || read_annotation === 'N') {
+			    name += tree[i];
+			}
+			else if (read_annotation === 'V') {
+			    val += tree[i];
+			}
+		    }
 		    ++i;
 		}
 	    }
