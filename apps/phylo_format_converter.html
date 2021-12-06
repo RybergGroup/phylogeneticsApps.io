@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8"> 
+<head>
+<title>Phylo format</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div id="intro"></div>
+<h1>Phylo format converter</h1>
+<p id='instructions'>This app will convert newick formated tree into JSON.</p>
+<input type="file" id="files" multiple />
+<div id="analyze"></div>
+<!--button type="button" onclick="get_stats()">Get stats</button-->
+<div id="output_list"></div>
+<script src="../js_code/FileSaver.js"></script>
+<script src="../js_code/tree.js"></script>
+<script src="../js_code/intros.js"></script>
+<script>
+
+document.addEventListener("load", bio_apps_intro(document.getElementById("intro")));
+var output = "No output generated";
+//var alignment = new alignmentObject();
+var trees=[];
+
+function process_file (f) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+	var text = reader.result;
+	text = text.split(";");
+	for (var i=0; i < text.length; ++i) {
+	    if (/\S/.test(text[i])) {
+		trees.push(new tree());
+		trees[trees.length-1].pars_newick(text[i]);
+	    }
+	}
+    }
+    reader.readAsText(f);
+}
+function readMultipleFiles(evt) {
+    if (window.File && window.FileReader && window.FileList && window.Blob) {
+	var files = evt.target.files; // FileList object
+	// files is a FileList of File objects. List some properties.
+	if (files) {
+	    for (var i = 0; i < files.length; ++i) {
+		var f = files[i];
+		process_file (f);
+	    }
+	}
+	else {
+	    alert("Failed to load files");
+	}
+	document.getElementById("analyze").innerHTML = '<button type="button" onclick="convert(true)">Convert</button></br>';
+	document.getElementById("analyze").innerHTML += '<button type="button" onclick="convert(false)">Get file</button>';
+    }
+    else {
+	alert('The File APIs are not fully supported by your browser.');
+    }
+}
+
+function convert(to_screen) {
+    output = '';
+    for (var i = 0; i < trees.length; ++i) {
+	//console.log(trees[i].root["annotation"])
+	output += trees[i].stringify();
+    }
+    if (to_screen) document.getElementById('output_list').innerHTML = '<p>' + output + '</p>';
+    else make_text_file(output);
+}
+
+
+document.getElementById('files').addEventListener('change', readMultipleFiles, false);
+    
+
+function make_text_file (text) {
+    var data = new Blob ([text],{type: 'text/plain'});
+    saveAs(data, "re_formated.JSON");
+}
+
+</script>
+</body>
+</html>

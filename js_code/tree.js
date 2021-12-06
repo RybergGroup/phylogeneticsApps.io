@@ -1,8 +1,8 @@
 function node (label="", length=0, mom=null) {
-    this.children=[];
-    this.mother = mom;
     this.name = label;
     this.branch_length = length;
+    this.children=[];
+    this.mother = mom;
     this.childByName = function ( taxon ) {
 	for (var i=0; i < this.children.length; ++i) {
 	    if (typeof this.children[i].name === 'string' && this.children[i].name.localeCompare(taxon) === 0) {
@@ -22,20 +22,22 @@ function tree () {
         treeCopy.scores = copyComplexObject(this.scores);
     }
     this.pars_newick = function (tree) { // tree should be a textstring witha newick formated tree
-	var present = this.root;
-	var read_mode = 's';
-	var label="";
-	var branch_length="";
-	var additional_annotations = {};
-	for (var i=0; i < tree.length; ++i) {
+	//console.log(tree);
+	let present = this.root;
+	let read_mode = 's';
+	let label="";
+	let branch_length="";
+	let additional_annotations = {};
+	let i=0;
+	for (; i < tree.length; ++i) {
 	    if (tree[i] === '[') {
-		var n_square_right = 1;
-		var read_annotation = 'F';
-		var start=true;
-		var name = '';
-		var val = '';
-		while ((n_square || start) && i < tree.length) {
-		    if (start) { start=false; }
+		let n_square_right = 0;
+		let read_annotation = 'F';
+		//let start=true;
+		let entry = '';
+		let val = '';
+		while (/*(n_square_right || start) && */i < tree.length) {
+		    //if (start) { start=false; }
 		    if (tree[i] === '[') {
 			++n_square_right;
 			if (tree[i+1] === '&') {
@@ -48,21 +50,22 @@ function tree () {
 		    else if (tree[i] === ']') { --n_square_right; }
 		    else if (read_annotation !== 'F') {
 			if (tree[i] === '=') {
-			    if (name) read_annotation = 'V';
+			    if (entry) read_annotation = 'V';
 			}
-			else if (tree[i] === ',' || tree[i] === ' ') {
-			    if (name && val) additional_annotations[name] = val;
-			    name = '';
+			else if (tree[i] === ',' || tree[i] === ' ' || tree[i+1] == ']') {
+			    if (entry && val) additional_annotations[entry] = val;
+			    entry = '';
 			    val = '';
 			    read_annotation = 'N';
 			}
 			else if (read_annotation === 'T' || read_annotation === 'N') {
-			    name += tree[i];
+			    entry += tree[i];
 			}
 			else if (read_annotation === 'V') {
 			    val += tree[i];
 			}
 		    }
+		    if (n_square_right === 0) break;
 		    ++i;
 		}
 	    }
@@ -82,8 +85,12 @@ function tree () {
                 if (branch_length.length > 0) {
                     present.branch_length = parseFloat(branch_length);
                 }
+		if (Object.keys(additional_annotations).length > 0) {
+		    present["annotations"] = additional_annotations;
+		}
                 label="";
                 branch_length="";
+		additional_annotations = {};
                 if (present.mother) { present = present.mother; }
                 else { alert ("Failure to pars tree at char: " + i + " (" + tree[i] + ")" ) }
                 present.children[present.children.length] = new node(0,0,present);
@@ -97,30 +104,26 @@ function tree () {
                 if (branch_length.length > 0) {
                     present.branch_length = parseFloat(branch_length);
                 }
+		if (Object.keys(additional_annotations).length > 0) {
+		    present["annotations"] = additional_annotations;
+		}
                 label="";
                 branch_length="";
+		additional_annotations = {};
                 present = present.mother;
     	    }
     	    else if (tree[i] === ':') {
                 read_mode = 'b';
     	    }
     	    else if (tree[i] === ';') {
-                if (present === this.root) {
-                    if (label.length > 0) {
-                        present.name=label;
-                    }
-                    if (branch_length.length > 0) {
-                        present.branch_length = parseFloat(branch_length);
-                    }
-                }
-                else { alert ("Tree may not have been parsed correctly. Check tree format."); }
+		break;
             }
     	    else if (read_mode === 'b') {
                 branch_length += tree[i];
     	    }
     	    else if (read_mode === 'l') {
                 if (label.length > 0 && (tree[i] === "'" || tree[i] === '"')) {
-                    var marker = tree[i];
+                    let marker = tree[i];
                     ++i;
                     while (tree[i] !== marker && i < tree.length) {
                         label += tree[i];
@@ -129,6 +132,22 @@ function tree () {
                 else { label += tree[i]; }
     	    }
         }
+	if (tree[i] === ';' || i === tree.length) {
+	    //console.log("end of tree");
+	    if (present === this.root) {
+		if (label.length > 0) {
+		    present.name=label;
+		}
+		if (branch_length.length > 0) {
+		    present.branch_length = parseFloat(branch_length);
+		}
+		if (Object.keys(additional_annotations).length > 0) {
+		    present["annotations"] = additional_annotations;
+		}
+		//console.log(additional_annotations);
+	    }
+    	    else { alert ("Tree may not have been parsed correctly. Check tree format."); }
+	}
     }
     this.write = function(writeBranchLength = true, writeInternalLabels = true ) {
 	var output = "";
@@ -145,6 +164,43 @@ function tree () {
 	writeNode(this.root);
 	output += ';';
 	return output;
+    }
+    this.stringify = function () {
+	var JSONstring = '';
+	function nodeJSON (node, deapth) {
+	    let indent = '    '.repeat(deapth);
+	    JSONstring += indent + '{';
+	    let first = true;
+	    for ( let name in node ) {
+		if (!node.hasOwnProperty(name) || name === 'mother' || name === 'childByName') continue;
+		else {
+		    if (first) first = false;
+		    else JSONstring += ',';
+		    JSONstring += '\n';
+		    JSONstring += indent + '"' + name + '":';
+		    if (name === 'children') {
+			JSONstring += '[';
+			for (let i=0; i < node.children.length; ++i) {
+			    if (i !== 0) { JSONstring += ',\n'; }
+			    else { JSONstring += '\n'; }
+			    nodeJSON(node.children[i], deapth+1 );
+			}
+			if (node.children.length > 0) JSONstring += '\n' + indent;
+			JSONstring += ']'
+		    }
+		    else {
+		       	if (typeof node[name] === "undefined") JSONstring += '""';
+			else if (typeof node[name] === "string") JSONstring += '"' + node[name] + '"';
+			else if (typeof node[name] === "object") JSONstring += JSON.stringify(node[name]);
+			else JSONstring += node[name];
+		    }
+		}
+	    }
+	    JSONstring += '\n' + indent + '}'
+	}
+	nodeJSON(this.root, 0);
+	return JSONstring;
+	
     }
     this.nTips = function () {
 	function subNtips(node) {
