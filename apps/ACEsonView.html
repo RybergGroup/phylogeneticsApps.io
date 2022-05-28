@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8"> 
+<head>
+<title>ACEsonView</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div id="intro"></div>
+<h1>ACEsonView</h1>
+<p id='instructions'>This app can view contigs in ACEson format.</p>
+Contigs:<input type="file" id="aceson_files" multiple /><br/>
+</div>
+<div id="chromatograms"></div>
+<br/>
+<div id="alignment"></div>
+<div id="edit"></div>
+<!--script src="../js_code/FileSaver.js"></script-->
+<script src="../js_code/aceson.js"></script>
+<script src="../js_code/alignment.js"></script>
+<script src="../js_code/intros.js"></script>
+<script>
+
+document.addEventListener("load", bio_apps_intro(document.getElementById("intro")));
+let output = "No output generated";
+let contigs = new aceson();
+
+function writeChromatograms( contigNo, centerBase ) {
+    document.getElementById("chromatograms").innerHTML = '';
+    for (let i=0; i < contigs.getNreads( contigNo ); ++i) {
+	let height = 150;
+	let scaleY = height/contigs.getTraceMaxval(contigNo, i);
+	let scaleX = 1.0;
+	document.getElementById("chromatograms").innerHTML += "<div id=\"chrom_" + i + "\" class=\"chrom\" height=\"" + height + "\" width=\"500\">" + contigs.tracesSVG(contigNo,i,0,height, scaleX, scaleY) + "</div>";
+    }
+}
+
+function writeAlignment( contigNo ) {
+    let fontsize = 12;
+    document.getElementById("alignment").innerHTML = '';
+    document.getElementById("alignment").innerHTML = "<div id=\"contig\" class=\"chrom\" height=\"" + (fontsize * (contigs.getNreads ( contigNo )+2)) + "\" width=\"500\">" + contigs.alignmentSVG(contigNo, fontsize).join('') + "</div>";
+}
+
+function readMultipleACEsons(evt) {
+    if (window.File && window.FileReader && window.FileList && window.Blob) {
+	let files = evt.target.files; // FileList object
+	// files is a FileList of File objects. List some properties.
+	if (files) {
+	    for (let i = 0; i < files.length; ++i) {
+		//let f = files[i];
+		let open_file = new Promise(function(myResolve) {
+		    let reader = new FileReader();
+		    reader.onload = function (e) {
+		     	myResolve( reader.result );
+		    }
+		    reader.readAsText(files[i]);
+
+		});
+		open_file.then(function (value) {
+		    contigs.addContigs(value);
+		    console.log("" + document.documentElement.clientWidth + " " + document.documentElement.clientHeight);
+		    writeChromatograms(0,0);
+		    writeAlignment(0);
+		});
+	    }
+	}
+	else {
+	    alert("Failed to load files");
+	}
+    }
+    else {
+	alert('The File APIs are not fully supported by your browser.');
+    }
+}
+
+function applyBaseChange( contigNo, pos ) {
+    let form = document.getElementById("edit_base");
+    let new_base = contigs.getContigBase( contigNo, pos );
+    if (form.elements["baseA"].checked && form.elements["baseC"].checked && form.elements["baseG"].checked && form.elements["baseT"].checked)
+	new_base = 'N';
+    else if (form.elements["baseA"].checked && form.elements["baseC"].checked && form.elements["baseG"].checked)
+	new_base = 'V';
+    else if (form.elements["baseA"].checked && form.elements["baseC"].checked && form.elements["baseT"].checked)
+	new_base = 'H';
+    else if (form.elements["baseA"].checked && form.elements["baseG"].checked && form.elements["baseT"].checked)
+	new_base = 'D';
+    else if ( form.elements["baseC"].checked && form.elements["baseG"].checked && form.elements["baseT"].checked)
+	new_base = 'B';
+    else if (form.elements["baseA"].checked && form.elements["baseC"].checked)
+	new_base = 'M';
+    else if (form.elements["baseA"].checked && form.elements["baseG"].checked)
+	new_base = 'R';
+    else if (form.elements["baseA"].checked && form.elements["baseT"].checked)
+	new_base = 'W';
+    else if (form.elements["baseC"].checked && form.elements["baseG"].checked)
+	new_base = 'S';
+    else if (form.elements["baseC"].checked && form.elements["baseT"].checked)
+	new_base = 'Y';
+    else if (form.elements["baseG"].checked && form.elements["baseT"].checked)
+	new_base = 'K';
+    else if (form.elements["baseA"].checked)
+	new_base = 'A';
+    else if (form.elements["baseC"].checked)
+	new_base = 'C';
+    else if (form.elements["baseG"].checked)
+	new_base = 'G';
+    else if (form.elements["baseT"].checked)
+	new_base = 'T';
+    else
+	new_base = '*';
+
+    if ( new_base !== contigs.getContigBase( contigNo, pos )) {
+	contigs.setContigBase(contigNo,pos,new_base);
+	this.writeAlignment( contigNo );
+	document.getElementById("contig").scrollLeft  = pos*12 - document.getElementById("contig").getAttribute("width")/2;
+    }
+}
+
+function closeBaseEdit() {
+    document.getElementById("edit").innerHTML = '';
+}
+
+function baseClick ( contigNo, pos ) {
+    console.log("---");
+    for (let i=0; i < contigs.getNreads( contigNo ); ++i) {
+	let x_coord = contigs.getQualCoord(contigNo, i, pos);
+	console.log("" + x_coord + " " + pos);
+	document.getElementById("line_" + i).setAttribute("x1", x_coord);
+	document.getElementById("line_" + i).setAttribute("x2", x_coord);
+	document.getElementById("line_" + i).setAttribute("y1", 0);
+	document.getElementById("line_" + i).setAttribute("y2", document.getElementById("chrom_graph_" + i).getAttribute("height"));
+	document.getElementById("chrom_" + i).scrollLeft = x_coord - document.getElementById("chrom_" + i).getAttribute("width")/2;
+    }
+    let base = contigs.getContigBase( contigNo, pos );
+    base = base["base"];
+    let form = "<form id=\"edit_base\">";
+    form += "<input type=\"checkbox\" id=\"baseA\" name=\"baseA\" value=\"A\" ";
+    if (base === "A") form += "checked=\"checked\" ";
+    form += "/><lable for=\"baseA\">A</label>";
+
+    form += "<input type=\"checkbox\" id=\"baseC\" name=\"baseC\" value=\"C\" ";
+    if (base === "C") form += "checked=\"checked\" ";
+    form += "/><lable for=\"baseC\">C</label>";
+
+    form += "<input type=\"checkbox\" id=\"baseG\" name=\"baseG\" value=\"G\" ";
+    if (base === "G") form += "checked=\"checked\" ";
+    form += "/><lable for=\"baseG\">G</label>";
+
+    form += "<input type=\"checkbox\" id=\"baseT\" name=\"baseT\" value=\"T\" ";
+    if (base === "T") form += "checked=\"checked\" ";
+    form += "/><lable for=\"baseT\">T</label>";
+
+    form += "</br><button type=\"button\" onclick=\"applyBaseChange(" + contigNo + ", " + pos + ")\">Apply</button>";
+    form += "<button type=\"button\" onclick=\"closeBaseEdit()\">Close</button>";
+    form += "</form>";
+    document.getElementById("edit").innerHTML = form;
+    console.log(form);
+}
+document.getElementById('aceson_files').addEventListener('change', readMultipleACEsons, false);
+    
+
+</script>
+</body>
+</html>
