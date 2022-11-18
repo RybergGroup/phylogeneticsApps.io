@@ -28,10 +28,13 @@ let contigs = new aceson();
 function writeChromatograms( contigNo, centerBase ) {
     document.getElementById("chromatograms").innerHTML = '';
     for (let i=0; i < contigs.getNreads( contigNo ); ++i) {
-	let height = 150;
-	let scaleY = height/contigs.getTraceMaxval(contigNo, i);
-	let scaleX = 1.0;
-	document.getElementById("chromatograms").innerHTML += "<div id=\"chrom_" + i + "\" class=\"chrom\" height=\"" + height + "\" width=\"500\">" + contigs.tracesSVG(contigNo,i,0,height, scaleX, scaleY) + "</div>";
+	if (contigs.haveTrace(contigNo,i)) {
+	    let height = 150;
+	    let scaleY = height/contigs.getTraceMaxval(contigNo, i);
+	    let scaleX = 1.0;
+	    document.getElementById("chromatograms").innerHTML += "<div id=\"chrom_" + i + "\" class=\"chrom\" height=\"" + height + "\" width=\"500\">" + contigs.tracesSVG(contigNo,i,0,height, scaleX, scaleY);
+	    document.getElementById("chromatograms").innerHTML += "<form action=\"/action_page.php\"><input type=\"number\" id=\"scale_\"" + i + " name=\"quantity\" min=\"0\" max=\"100\" value=\"1\" step=\"0.01\"><input type=\"button\">scale</form></div>";
+	}
     }
 }
 
@@ -59,8 +62,10 @@ function readMultipleACEsons(evt) {
 		open_file.then(function (value) {
 		    contigs.addContigs(value);
 		    console.log("" + document.documentElement.clientWidth + " " + document.documentElement.clientHeight);
-		    writeChromatograms(0,0);
-		    writeAlignment(0);
+		    if (contigs.haveTraces(0))
+			writeChromatograms(0,0);
+		    if (contigs.haveAlignment(0))
+			writeAlignment(0);
 		});
 	    }
 	}

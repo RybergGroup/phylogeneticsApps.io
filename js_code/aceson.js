@@ -9,7 +9,32 @@ class aceson {
     }
     addContigs ( JSONstring ) {
 	//console.log(JSON.parse( JSONstring ));
-	this.contig = this.contig.concat(JSON.parse( JSONstring )["contigs"]);
+	let to_add = JSON.parse( JSONstring );
+	if (to_add["contigs"])
+	    this.contig = this.contig.concat(JSON.parse( JSONstring )["contigs"]);
+	else if (to_add["reads"]) {
+	    this.contig = this.contig.concat(JSON.parse( JSONstring ));
+	}
+	else
+	    console.log("No recognized format");
+	console.log(this.contig);
+    }
+    haveTraces( contig_no ) {
+	if (this.contig[contig_no]["reads"])
+	    for (let i=0; i<this.contig[contig_no]["reads"].length; ++i)
+		if (this.haveTrace(contig_no, i))
+		    return true;
+	return false;
+    }
+    haveTrace ( contig_no, read_no) {
+	if (this.contig[contig_no]["reads"][read_no]["chrom"] && this.contig[contig_no]["reads"][read_no]["chrom"]["traces"])
+	    return true;
+	return false;
+    }
+    haveAlignment( contig_no ) {
+	if (this.contig[contig_no]["alignment"])
+	    return true;
+	return false;
     }
     getNcontigs () { return this.contig.length; }
     getNreads ( contig_no ) {
