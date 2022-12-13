@@ -61,6 +61,7 @@ function readMultipleACEsons(evt) {
 		});
 		open_file.then(function (value) {
 		    contigs.addContigs(value);
+		    console.log(contigs);
 		    console.log("" + document.documentElement.clientWidth + " " + document.documentElement.clientHeight);
 		    if (contigs.haveTraces(0))
 			writeChromatograms(0,0);
