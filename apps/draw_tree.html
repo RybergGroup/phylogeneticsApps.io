@@ -61,9 +61,12 @@ function draw_SVG() {
     width = 500;
     height = 500;
     for (var i = 0; i < trees.length; ++i) {
+	//trees[i].to_cladogram(1);
+	trees[i].midpoint_root();
 	trees[i].add_svg_annotation(width,height);
 	output += trees[i].drawSVG(width,height);
-	output += "\n</br>\n<button type=\"button\" onclick=\"drawSVGtoFile(" + i + ")\">Save image as file</button>";
+	//console.log(output);
+	output += "\n</br>\n<button type=\"button\" onclick=\"drawSVGtoFile(" + i + ")\">Save image as file</button>\n</br>\n";
     }
     document.getElementById('output_list').innerHTML = output;
 }
